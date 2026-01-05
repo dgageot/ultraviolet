@@ -605,12 +605,12 @@ var (
 func NewScreenBuffer(width, height int) ScreenBuffer {
 	return ScreenBuffer{
 		RenderBuffer: NewRenderBuffer(width, height),
-		Method:       ansi.WcWidth,
+		Method:       ansi.GraphemeWidth,
 	}
 }
 
 // WidthMethod returns the width method used by the screen.
-// It defaults to [ansi.WcWidth].
+// It defaults to [ansi.GraphemeWidth].
 func (s ScreenBuffer) WidthMethod() WidthMethod {
 	return s.Method
 }
