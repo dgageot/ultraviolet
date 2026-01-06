@@ -580,6 +580,9 @@ func (s *TerminalRenderer) updatePen(cell *Cell) {
 // canClearWith checks whether the given cell can be used by clearing commands
 // like [ansi.EL] to clear the screen. It tests if a cell is empty i.e. space
 // or blank and doesn't include any bad style attributes such as [AttrReverse].
+// NOTE: This assumes that the terminal supports BCE (Background Color Erase)
+// terminfo capability, which all xterm-compatible terminals do. BCE means that
+// erase commands will use the current pen's background color.
 func canClearWith(c *Cell) bool {
 	if c == nil {
 		return true
@@ -587,16 +590,12 @@ func canClearWith(c *Cell) bool {
 	if c.Width != 1 || len(c.Content) != 1 || c.Content != " " {
 		return false
 	}
-	// NOTE: This assumes that the terminal supports bce terminfo capability
-	// which all xterm-compatible terminals and terminals that use xterm*
-	// terminal types do.
-	// We also need to check for foreground and background colors because
-	// EraseLineRight uses the current pen color, not the cell's color, and
-	// clearing cells with colors would lose the color information.
+	// Allow cells with background color (BCE will use current pen's bg).
+	// Disallow foreground color since erase doesn't render any character.
+	// Disallow problematic attributes like underline and reverse.
 	return c.Style.Underline == UnderlineNone &&
 		c.Style.Attrs&^(AttrBold|AttrFaint|AttrItalic|AttrBlink|AttrRapidBlink) == 0 &&
 		c.Style.Fg == nil &&
-		c.Style.Bg == nil &&
 		c.Link.IsZero()
 }
 
