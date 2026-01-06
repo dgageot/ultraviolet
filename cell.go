@@ -414,6 +414,27 @@ func colorEqual(c, o color.Color) bool {
 	if c == nil || o == nil {
 		return false
 	}
+	// Fast path: direct comparison for common concrete types
+	// This avoids the expensive RGBA() interface method calls
+	switch cv := c.(type) {
+	case color.RGBA:
+		if ov, ok := o.(color.RGBA); ok {
+			return cv == ov
+		}
+	case ansi.TrueColor:
+		if ov, ok := o.(ansi.TrueColor); ok {
+			return cv == ov
+		}
+	case ansi.ExtendedColor:
+		if ov, ok := o.(ansi.ExtendedColor); ok {
+			return cv == ov
+		}
+	case ansi.BasicColor:
+		if ov, ok := o.(ansi.BasicColor); ok {
+			return cv == ov
+		}
+	}
+	// Fallback to RGBA comparison for other types
 	cr, cg, cb, ca := c.RGBA()
 	or, og, ob, oa := o.RGBA()
 	return cr == or && cg == og && cb == ob && ca == oa
