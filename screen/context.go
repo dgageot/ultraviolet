@@ -1,6 +1,7 @@
 package screen
 
 import (
+	"bytes"
 	"fmt"
 	"image/color"
 	"strings"
@@ -297,15 +298,23 @@ func (c *Context) Printf(format string, a ...any) (int, error) {
 	return fmt.Fprintf(c, format, a...)
 }
 
+// replacementChar substitutes invalid UTF-8 sequences in drawn strings.
+// Passing invalid bytes through to the terminal would desync the renderer's
+// cursor tracking, since the terminal renders them with an unpredictable
+// width.
+const replacementChar = "\uFFFD"
+
 // DrawString draws the given string at the given position with the current
 // style and link, cropping the string when it reaches the edge of the screen.
 func (c *Context) DrawString(s string, x, y int) {
+	s = strings.ToValidUTF8(s, replacementChar)
 	drawStringAt(c.scr, graphemes.FromString(s), x, y, c.style, c.link, false)
 }
 
 // DrawStringWrapped draws the given string at the given position with the current
 // style and link, wrapping the string when it reaches the edge of the screen.
 func (c *Context) DrawStringWrapped(s string, x, y int) {
+	s = strings.ToValidUTF8(s, replacementChar)
 	drawStringAt(c.scr, graphemes.FromString(s), x, y, c.style, c.link, true)
 }
 
@@ -313,7 +322,8 @@ func (c *Context) DrawStringWrapped(s string, x, y int) {
 // given byte slice to the screen at the current position, updating the
 // position accordingly.
 func (c *Context) Write(p []byte) (n int, err error) {
-	c.pos.X, c.pos.Y = drawStringAt(c.scr, graphemes.FromBytes(p), c.pos.X, c.pos.Y, c.style, c.link, true)
+	b := bytes.ToValidUTF8(p, []byte(replacementChar))
+	c.pos.X, c.pos.Y = drawStringAt(c.scr, graphemes.FromBytes(b), c.pos.X, c.pos.Y, c.style, c.link, true)
 	return len(p), nil
 }
 
@@ -321,7 +331,8 @@ func (c *Context) Write(p []byte) (n int, err error) {
 // writing the given string to the screen at the current position, updating the
 // position accordingly.
 func (c *Context) WriteString(s string) (n int, err error) {
-	c.pos.X, c.pos.Y = drawStringAt(c.scr, graphemes.FromString(s), c.pos.X, c.pos.Y, c.style, c.link, true)
+	valid := strings.ToValidUTF8(s, replacementChar)
+	c.pos.X, c.pos.Y = drawStringAt(c.scr, graphemes.FromString(valid), c.pos.X, c.pos.Y, c.style, c.link, true)
 	return len(s), nil
 }
 
